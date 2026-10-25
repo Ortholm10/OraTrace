@@ -26,13 +26,6 @@ cd OraTrace
 npm install
 ```
 
-Create a file named `.env` in the project folder with the Supabase project's URL and public anon key (used only for dentist sign-in):
-
-```
-NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
-```
-
 Then build and start, and open http://localhost:3000:
 
 ```bash
@@ -40,7 +33,7 @@ npm run build
 npx serve out
 ```
 
-Sign in once while online. After that the app works fully offline until the session expires. Patients, photos and decisions are stored only in the browser (IndexedDB) and are never sent anywhere.
+The sign-in keys for the shared Supabase project are already in `.env.production`, which the build reads, so there is nothing to configure. Create a dentist account and sign in once while online. After that the app works fully offline until the session expires. Patients, photos and decisions are stored only in the browser (IndexedDB) and are never sent anywhere.
 
 ## Model
 
