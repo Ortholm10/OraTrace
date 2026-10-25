@@ -275,6 +275,179 @@
     font-weight: 500;
     color: var(--muted);
   }
+
+  /* Signed-in background video (components/AppBackground.tsx). The poster sits under it as a CSS background so
+     reduced motion (video hidden) and the moment before playback both show the same first frame. */
+  .app-video {
+    background: url("/bg/hero-poster.jpg") center / cover no-repeat var(--background);
+  }
+  .app-video video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .app-video video {
+      display: none;
+    }
+  }
+
+  /* Frosted glass panels over the app background (components/AppBackground.tsx). Ink text stays on top: the
+     background is pale, so contrast comes from the panel, not a dark scrim. */
+  .glass {
+    border: 1px solid rgb(255 255 255 / 0.85);
+    border-radius: 1.5rem;
+    background: linear-gradient(160deg, rgb(255 255 255 / 0.82), rgb(255 255 255 / 0.62));
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+    backdrop-filter: blur(24px) saturate(170%);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.95),
+      0 1px 2px rgb(21 35 42 / 0.06),
+      0 28px 60px -24px rgb(21 35 42 / 0.32);
+  }
+  /* Sign-in box: more opaque panel so the form reads clearly over the moving footage. */
+  .glass-strong {
+    background: linear-gradient(160deg, rgb(255 255 255 / 0.96), rgb(255 255 255 / 0.88));
+  }
+  /* Fallback for browsers without backdrop-filter: keep text readable on a near-opaque panel. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass {
+      background: rgb(255 255 255 / 0.95);
+    }
+  }
+
+  /* Tappable cards (dashboard actions). Hover (fine pointers): a 2px lift, a deeper shadow, the CTA darkens and its
+     arrow nudges toward where the card leads. Press: an immediate push-in on pointer-down, not on release.
+     Critically damped (strong ease-out, no overshoot); CSS transitions retarget from the current value, so a quick
+     hover-out mid-lift reverses smoothly. */
+  .action-card {
+    transition-property: transform, box-shadow;
+    transition-duration: var(--duration-base);
+    transition-timing-function: var(--ease-out-strong);
+  }
+  .action-card .action-arrow {
+    transition: transform var(--duration-base) var(--ease-out-strong);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .action-card:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.95),
+        0 2px 4px rgb(21 35 42 / 0.08),
+        0 36px 70px -24px rgb(21 35 42 / 0.38);
+    }
+    .action-card:hover .btn-primary {
+      background: var(--accent-hover);
+    }
+    .action-card:hover .action-arrow {
+      transform: translateX(3px);
+    }
+  }
+  .action-card:active {
+    transform: scale(0.985);
+    transition-duration: var(--duration-press);
+  }
+  /* The card is the button: don't compound its press with the CTA's own press scale. */
+  .action-card .btn:active {
+    transform: none;
+  }
+
+  /* Existing-patient cards (app/patients/list). Fine pointers: each card floats over its neighbours and unfolds its
+     history on hover or keyboard focus, so the list never reflows under the cursor. Touch has no hover, so the
+     history is simply shown. The unfold animates grid rows 0fr -> 1fr; CSS transitions retarget from the current
+     value, so leaving mid-unfold folds back smoothly from where it is. */
+  .patient-slot {
+    position: relative;
+  }
+  .patient-card {
+    display: block;
+    transition-property: box-shadow, transform;
+    transition-duration: var(--duration-base);
+    transition-timing-function: var(--ease-out-strong);
+  }
+  .patient-card:active {
+    transform: scale(0.99);
+    transition-duration: var(--duration-press);
+  }
+  .patient-history {
+    display: grid;
+    grid-template-rows: 1fr;
+  }
+  .patient-history > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .patient-slot {
+      height: 6rem; /* the collapsed card: the min-h-24 header row */
+    }
+    .patient-card {
+      position: absolute;
+      inset-inline: 0;
+      top: 0;
+      z-index: 1;
+      /* z-index waits for the fold to finish, so a closing card doesn't drop behind its neighbour mid-fold. */
+      transition:
+        box-shadow var(--duration-base) var(--ease-out-strong),
+        transform var(--duration-base) var(--ease-out-strong),
+        z-index 0s linear var(--duration-base);
+    }
+    .patient-card:hover,
+    .patient-card:focus-visible {
+      z-index: 20;
+      box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.95),
+        var(--shadow-raised);
+      transition-delay: 0s;
+    }
+    .patient-history {
+      grid-template-rows: 0fr;
+      opacity: 0;
+      transition:
+        grid-template-rows var(--duration-base) var(--ease-out-strong),
+        opacity var(--duration-fast) var(--ease-out-strong);
+    }
+    /* A short wait before unfolding, so sweeping the cursor down the list doesn't flash every card open. */
+    .patient-card:hover .patient-history,
+    .patient-card:focus-visible .patient-history {
+      grid-template-rows: 1fr;
+      opacity: 1;
+      transition-delay: 80ms;
+    }
+  }
+
+  /* Auth stage: the box eases to its form's height (login <-> signup) instead of jumping. */
+  .auth-box {
+    transition: height var(--duration-base) var(--ease-out-strong);
+  }
+  /* Milky layer between the liquid lens and the form, so labels stay legible over the refracted background. */
+  .glass-veil {
+    background: rgb(255 255 255 / 0.55);
+  }
+
+  /* Translucency off, or more contrast: every glass surface becomes a solid panel (the auth lens is skipped too). */
+  @media (prefers-reduced-transparency: reduce) {
+    .glass,
+    .glass-strong,
+    .glass-veil {
+      background: var(--surface);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+  @media (prefers-contrast: more) {
+    .glass,
+    .glass-strong,
+    .glass-veil {
+      background: var(--surface);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    .glass,
+    .glass-veil {
+      border: 2px solid var(--foreground);
+    }
+  }
 }
 
 @layer components {
@@ -308,6 +481,22 @@
       from {
         opacity: 0;
       }
+    }
+    .auth-box {
+      transition: none;
+    }
+    /* The history appears with a fade alone; the card doesn't scale on press. */
+    .patient-history {
+      transition-property: opacity;
+    }
+    .patient-card:active {
+      transform: none;
+    }
+    /* Keep the shadow/colour feedback, drop the movement. */
+    .action-card:hover,
+    .action-card:active,
+    .action-card:hover .action-arrow {
+      transform: none;
     }
   }
 }

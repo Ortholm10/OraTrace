@@ -5,8 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { cacheProfile, getProfile } from "@/lib/profile";
+import AppBackground from "@/components/AppBackground";
 
-const PUBLIC_PATHS = ["/", "/login", "/signup"]; // "/" only forwards to the static landing page
+const PUBLIC_PATHS = ["/", "/login", "/signup"]; // "/" only forwards to the static landing page; auth pages bring their own stage
 let triedFor: string | null = null; // don't refetch on every navigation if the profile row is missing
 
 // Static export has no middleware, so gating is client-side. getSession() reads the local cache (no network),
@@ -37,39 +38,50 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }, [open, pathname, router]);
 
   if (open) return children;
-  if (authed)
-    return (
-      <>
-        <AppHeader />
-        {children}
-      </>
-    );
+  // One background for every signed-in screen, mounted once here so it keeps playing across navigation.
+  // Each screen enters with the app's short rise + fade (animate-enter; a plain fade under reduced motion).
   return (
-    <p role="status" className="animate-fade p-6 text-center text-sm text-muted">
-      Checking sign-in…
-    </p>
+    <>
+      <AppBackground />
+      {authed ? (
+        <>
+          <AppHeader />
+          <div key={pathname} className="animate-enter flex flex-1 flex-col">
+            {children}
+          </div>
+        </>
+      ) : (
+        <p role="status" className="animate-fade p-6 text-center text-sm text-muted">
+          Checking sign-in…
+        </p>
+      )}
+    </>
   );
 }
 
-// Wayfinding for signed-in screens: the wordmark always leads home, Settings is one tap away.
+// Wayfinding for signed-in screens: the wordmark always leads home, Settings is one tap away. A sticky glass bar,
+// so page content scrolls under the material instead of losing a fixed opaque strip.
 function AppHeader() {
   const pathname = usePathname();
-  const link = (href: string, label: string) => (
-    <Link
-      href={href}
-      aria-current={pathname === href ? "page" : undefined}
-      className="btn btn-ghost text-muted aria-[current=page]:text-foreground"
-    >
-      {label}
-    </Link>
-  );
+  const link = (href: string, label: string) => {
+    const current = pathname === href || (href === "/patients" && pathname.startsWith("/patients"));
+    return (
+      <Link
+        href={href}
+        aria-current={current ? "page" : undefined}
+        className="btn btn-ghost px-4 text-lg text-muted aria-[current=page]:bg-white/70 aria-[current=page]:text-foreground aria-[current=page]:shadow-sm"
+      >
+        {label}
+      </Link>
+    );
+  };
   return (
-    <header className="border-b border-border bg-surface">
-      <nav className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-1.5 md:px-8">
-        <Link href="/patients" className="btn btn-ghost -ml-3 text-lg font-semibold tracking-tight text-foreground">
+    <header className="glass sticky top-3 z-40 mx-3 mt-3 md:top-4 md:mx-6 md:mt-4">
+      <nav className="flex w-full items-center justify-between gap-4 px-4 py-2 md:px-8">
+        <Link href="/patients" className="btn btn-ghost -ml-3 text-xl font-semibold tracking-tight text-foreground">
           OraTrace
         </Link>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {link("/patients", "Patients")}
           {link("/settings", "Settings")}
         </div>

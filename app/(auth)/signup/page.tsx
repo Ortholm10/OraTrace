@@ -42,9 +42,9 @@ export default function SignupPage() {
   }
 
   return (
-    <form onSubmit={submit} className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-4 px-4 py-10">
+    <form onSubmit={submit} className="flex flex-col gap-5 [&_.label]:text-base [&_.field]:min-h-14 [&_.field]:text-lg [&_.btn]:text-lg">
       <p className="text-lg font-semibold tracking-tight text-accent">OraTrace</p>
-      <h1 className="mb-2 text-3xl font-semibold">Create dentist account</h1>
+      <h1 className="mb-2 text-5xl font-semibold">Create dentist account</h1>
       <label className="flex flex-col gap-1.5">
         <span className="label">Doctor&apos;s name</span>
         <input type="text" required autoComplete="name" value={f.name} onChange={set("name")} className={field} />

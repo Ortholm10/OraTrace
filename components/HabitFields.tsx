@@ -1,6 +1,7 @@
 "use client";
 
 import type { Habit, HabitStatus, SmokelessType } from "@/lib/db";
+import { RISK_FACTORS } from "@/lib/history";
 import { SITES } from "@/lib/sites";
 
 export type HabitFormValue = Omit<Habit, "id" | "patientId">;
@@ -21,11 +22,6 @@ export const emptyHabitForm: HabitFormValue = {
   poorlyFittingDenture: false,
 };
 
-const RISK_FACTORS = [
-  ["familyHistoryOralCancer", "Family history of oral cancer"],
-  ["personalHistoryOpmdOrOc", "Previous oral lesion (OPMD or oral cancer)"],
-  ["poorlyFittingDenture", "Poorly fitting denture"],
-] as const;
 
 const STATUSES: HabitStatus[] = ["current", "quit", "never"];
 const SMOKELESS_TYPES: SmokelessType[] = ["none", "gutka", "khaini", "other"];

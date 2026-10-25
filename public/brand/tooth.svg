@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="440" viewBox="0 0 200 220">
+  <defs>
+    <!-- Bright centre fading to grey edges: the dither turns this into denser dots in the middle, sparse at the rim. -->
+    <radialGradient id="shade" cx="42%" cy="34%" r="72%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.45" stop-color="#d6d6d6"/>
+      <stop offset="1" stop-color="#6e6e6e"/>
+    </radialGradient>
+  </defs>
+  <path fill="url(#shade)" d="M100 28C80 12 52 10 38 26C22 44 24 76 34 100C42 120 46 140 50 170C53 196 60 210 70 210C82 210 84 188 88 168C91 152 95 142 100 142C105 142 109 152 112 168C116 188 118 210 130 210C140 210 147 196 150 170C154 140 158 120 166 100C176 76 178 44 162 26C148 10 120 12 100 28Z"/>
+</svg>

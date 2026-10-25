@@ -25,9 +25,9 @@ export default function LoginPage() {
   }
 
   return (
-    <form onSubmit={submit} className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-4 px-4 py-10">
+    <form onSubmit={submit} className="flex flex-col gap-5 [&_.label]:text-base [&_.field]:min-h-14 [&_.field]:text-lg [&_.btn]:text-lg">
       <p className="text-lg font-semibold tracking-tight text-accent">OraTrace</p>
-      <h1 className="mb-2 text-3xl font-semibold">Dentist log in</h1>
+      <h1 className="mb-2 text-5xl font-semibold">Dentist log in</h1>
       <label className="flex flex-col gap-1.5">
         <span className="label">Email</span>
         <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
