@@ -16,13 +16,29 @@ A dentist-facing web app that runs fully offline in the browser. A dentist takes
 
 ## Run it locally
 
+The model runs inside the browser (ONNX Runtime Web), so there is no server to host. You need [Node.js](https://nodejs.org) 20.9 or newer and Git.
+
 ```bash
+git clone https://github.com/Ortholm10/OraTrace.git
+cd OraTrace
 npm install
+```
+
+Create a file named `.env` in the project folder with the Supabase project's URL and public anon key (used only for dentist sign-in):
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+```
+
+Then build and start, and open http://localhost:3000:
+
+```bash
 npm run build
 npx serve out
 ```
 
-Works fully offline once loaded — no backend, no API keys.
+Sign in once while online. After that the app works fully offline until the session expires. Patients, photos and decisions are stored only in the browser (IndexedDB) and are never sent anywhere.
 
 ## Model
 

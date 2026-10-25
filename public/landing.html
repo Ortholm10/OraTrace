@@ -108,6 +108,48 @@ h1{
 .cta{ margin-top:clamp(28px,3.4vw,44px); pointer-events:auto; width:100%; display:flex; justify-content:center; }
 .cta .pill{ height:48px; padding:0 27px; font-size:15px; max-width:min(100%, 320px); }
 
+/* ---------- install panel ---------- */
+.panel--install h1{ font-size:clamp(30px, 3.8vw, 54px); max-width:18ch; }
+.panel--install .sub{ max-width:min(54ch, 100%); margin-top:12px; font-size:clamp(14px,1.1vw,16.5px); }
+.panel--install .cta{ margin-top:18px; }
+.steps{
+  list-style:none; counter-reset:step; margin-top:18px;
+  width:min(660px, 100%); display:grid; gap:10px; text-align:left;
+  padding:16px 18px; border-radius:18px; border:1px solid var(--rule);
+  background:rgba(255,255,255,.74); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+}
+.steps li{
+  counter-increment:step; display:grid; grid-template-columns:22px 1fr; column-gap:10px; row-gap:6px;
+  align-items:baseline; font-size:14.5px; line-height:1.45; letter-spacing:-.006em; color:var(--fg);
+}
+.steps li::before{ content:counter(step); font-size:12.5px; color:var(--fg-faint); font-variant-numeric:tabular-nums; }
+.steps a{ color:var(--fg); text-underline-offset:3px; }
+.steps kbd{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.9em; padding:1px 5px; border-radius:5px; background:rgba(13,12,11,.07); }
+.steps .cmd{
+  grid-column:2; display:flex; align-items:center; gap:8px; min-width:0;
+  padding:6px 8px 6px 12px; border-radius:10px; background:rgba(13,12,11,.06);
+}
+.steps .cmd code{
+  flex:1; min-width:0; overflow-x:auto; white-space:pre; font-size:13px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:var(--fg);
+}
+.copy{
+  flex-shrink:0; height:28px; padding:0 11px; border-radius:999px; border:1px solid var(--rule);
+  background:#fff; color:var(--fg); font:inherit; font-size:12px; cursor:pointer;
+  transition:transform .12s var(--ease), background .2s var(--ease);
+}
+.copy:active{ transform:scale(.96); }
+.copy:focus-visible{ outline:2px solid var(--fg); outline-offset:2px; }
+.cta--pair{ gap:10px; flex-wrap:wrap; }
+.pill--ghost{ background:rgba(255,255,255,.8); color:var(--fg); -webkit-text-fill-color:var(--fg); }
+.pill--ghost:hover, .pill--ghost:focus-visible{ background:#fff; color:var(--fg); -webkit-text-fill-color:var(--fg); }
+@media (max-width:720px){
+  .panel--install .sub{ display:none; }
+  .steps{ padding:12px; gap:8px; }
+  .steps li{ font-size:13px; }
+  .steps .cmd code{ font-size:12px; }
+}
+
 /* ---------- preloader ---------- */
 .boot{
   position:fixed; inset:0; z-index:90; display:flex; flex-direction:column;
@@ -120,7 +162,7 @@ h1{
 .bar i{ display:block; height:100%; width:100%; background:var(--fg); transform:scaleX(0); transform-origin:0 50%; }
 
 /* ---------- scroll track (the only thing with height) ---------- */
-.track{ position:relative; z-index:1; height:560vh; min-height:3200px; }
+.track{ position:relative; z-index:1; height:740vh; min-height:4300px; } /* 4 panels: ~185vh of scroll each, as before */
 
 /* ---------- responsive ---------- */
 @media (max-width:900px){
@@ -173,6 +215,7 @@ h1{
 <header class="chrome">
   <div class="mark"><span class="mark-star" aria-hidden="true">&#10037;</span>&nbsp;OraTrace</div>
   <nav class="nav">
+    <a href="https://github.com/Ortholm10/OraTrace" target="_blank" rel="noopener">GitHub</a>
     <a href="/login">Sign in</a>
     <a href="/signup">Create account</a>
     <a class="pill" href="/patients">Open OraTrace</a>
@@ -200,6 +243,32 @@ h1{
     <p class="sub">Model output, a rule-based suggested action, and your final action &mdash; each logged separately, all on this device.</p>
     <div class="cta"><a class="pill" href="/signup">Create a dentist account</a></div>
   </section>
+
+  <section class="panel panel--install" data-panel aria-labelledby="install-title">
+    <p class="eyebrow">Run it yourself <span>&middot;</span> Windows, macOS or Linux</p>
+    <h1 id="install-title">Runs on your machine.</h1>
+    <p class="sub">The model runs inside your browser, so there is no server to host. Set it up once, then it works without internet.</p>
+    <ol class="steps">
+      <li><span>Install <a href="https://nodejs.org" target="_blank" rel="noopener">Node.js 20.9 or newer</a> and Git.</span></li>
+      <li><span>Download the code.</span>
+        <span class="cmd"><code>git clone https://github.com/Ortholm10/OraTrace.git &amp;&amp; cd OraTrace</code><button class="copy" type="button">Copy</button></span>
+      </li>
+      <li><span>Install dependencies.</span>
+        <span class="cmd"><code>npm install</code><button class="copy" type="button">Copy</button></span>
+      </li>
+      <li><span>Create a file named <kbd>.env</kbd> in the folder with the sign-in keys (values in the submission notes).</span>
+        <span class="cmd"><code>NEXT_PUBLIC_SUPABASE_URL=…
+NEXT_PUBLIC_SUPABASE_ANON_KEY=…</code><button class="copy" type="button">Copy</button></span>
+      </li>
+      <li><span>Build and start, then open <strong>localhost:3000</strong> and sign in once while online.</span>
+        <span class="cmd"><code>npm run build &amp;&amp; npx serve out</code><button class="copy" type="button">Copy</button></span>
+      </li>
+    </ol>
+    <div class="cta cta--pair">
+      <a class="pill" href="https://github.com/Ortholm10/OraTrace" target="_blank" rel="noopener">View on GitHub</a>
+      <a class="pill pill--ghost" href="/patients">Open OraTrace</a>
+    </div>
+  </section>
 </main>
 
 <footer class="foot">Built for Argonyx&rsquo;26 &nbsp;&middot;&nbsp; Clinical data stays on your device</footer>
@@ -226,9 +295,10 @@ h1{
   // The gaps between one panel's fadeOutEnd and the next fadeInStart are deliberate
   // dead zones (video only) so two panels are never readable at once.
   var CUES = [
-    [0.00, 0.00, 0.15, 0.23],
-    [0.35, 0.43, 0.57, 0.65],
-    [0.77, 0.85, 1.10, 1.20]
+    [0.00, 0.00, 0.11, 0.17],
+    [0.26, 0.32, 0.42, 0.48],
+    [0.57, 0.63, 0.73, 0.79],
+    [0.86, 0.92, 1.10, 1.20] // install panel: stays up at the end of the page
   ];
   var DRIFT = 22; // px of counter-scroll travel per panel
 
@@ -374,6 +444,18 @@ h1{
   }
   ["touchstart", "pointerdown", "wheel", "keydown"].forEach(function(ev){
     window.addEventListener(ev, unlock, { once: true, passive: true });
+  });
+
+  // Install steps: copy each command with one tap. Clipboard needs a secure context (localhost counts).
+  [].forEach.call(document.querySelectorAll(".copy"), function(btn){
+    btn.addEventListener("click", function(){
+      var text = btn.previousElementSibling.textContent; // the <code> right before the button
+      if (!navigator.clipboard) return;
+      navigator.clipboard.writeText(text).then(function(){
+        btn.textContent = "Copied";
+        setTimeout(function(){ btn.textContent = "Copy"; }, 1400);
+      }).catch(function(){});
+    });
   });
 
   window.addEventListener("scroll", readScroll, { passive: true });
