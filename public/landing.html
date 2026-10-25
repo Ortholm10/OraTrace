@@ -28,9 +28,9 @@ body{
 
 /* ---------- fixed background video ---------- */
 .stage{ position:fixed; inset:0; z-index:0; overflow:hidden; background:var(--shade); }
-.stage video{
+.stage canvas{
   position:absolute; top:50%; left:50%; width:100%; height:100%;
-  transform:translate(-50%,-50%) scale(1.02); object-fit:cover; filter:contrast(1.02); will-change:transform;
+  transform:translate(-50%,-50%) scale(1.02); filter:contrast(1.02); will-change:transform;
 }
 .veil{
   position:absolute; inset:0; pointer-events:none;
@@ -205,7 +205,7 @@ h1{
 </div>
 
 <div class="stage">
-  <video id="clip" muted playsinline preload="auto" disablepictureinpicture></video>
+  <canvas id="clip" aria-hidden="true"></canvas>
   <div class="veil"></div>
   <div class="grain"></div>
 </div>
@@ -279,12 +279,18 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=…</code><button class="copy" type="button">Copy<
 (function(){
   "use strict";
 
-  // Same-origin file in /public. Generate it in Google Flow, then re-encode ALL-INTRA
-  // (every frame a keyframe, e.g. ffmpeg -g 1) so a scroll scrub can land on any exact
-  // frame instantly instead of decoding forward from the last keyframe.
-  var VIDEO_URL = "tooth-scrub.mp4";
+  // Scroll-scrubbed tooth: an image sequence drawn on a canvas, not a <video>. Video seeks are
+  // asynchronous and get dropped while one is in flight, so a fast scroll lags and then jumps;
+  // drawing pre-decoded frames is synchronous. Frames come from tooth-scrub.mp4 (kept as the source):
+  //   ffmpeg -i tooth-scrub.mp4 -vf fps=12 -c:v libwebp -quality 74 landing-frames/f%03d.webp
+  // 96 frames, 1.8 MB. Neighbouring frames are cross-blended by the fractional position, so even a
+  // slow scroll moves continuously instead of stepping frame to frame.
+  var FRAME_COUNT = 96;
+  function frameUrl(i){ return "landing-frames/f" + ("00" + (i + 1)).slice(-3) + ".webp"; }
 
-  var clip = document.getElementById("clip");
+  var canvas = document.getElementById("clip");
+  var ctx = canvas.getContext("2d");
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var boot = document.getElementById("boot");
   var bootBar = document.getElementById("bootBar");
   var bootPct = document.getElementById("bootPct");
@@ -300,7 +306,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=…</code><button class="copy" type="button">Copy<
     [0.57, 0.63, 0.73, 0.79],
     [0.86, 0.92, 1.10, 1.20] // install panel: stays up at the end of the page
   ];
-  var DRIFT = 22; // px of counter-scroll travel per panel
+  var DRIFT = reduceMotion ? 0 : 22; // px of counter-scroll travel per panel; reduced motion: fade only
 
   function clamp(v, a, b){ return v < a ? a : v > b ? b : v; }
   function smooth(t){ return t * t * (3 - 2 * t); }
@@ -309,16 +315,47 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=…</code><button class="copy" type="button">Copy<
     return smooth(clamp((p - a) / (b - a), 0, 1));
   }
 
-  var FPS = 24;     // tooth-scrub.mp4 frame rate
-  var EASE = 0.115; // share of the remaining gap closed per 60Hz frame
-
-  // progress = raw scroll (0..1); shown = eased progress. Video, panels and meter all
-  // read `shown`, so wheel-notch jumps glide instead of stepping and everything moves as one.
-  var progress = 0, shown = 0, painted = -1, lastFrame = -1, lastT = 0, duration = 0, ready = false;
+  // progress = raw scroll (0..1); shown = where the page actually is. A critically damped spring
+  // (damping ratio 1, ~0.45s response) pulls shown toward progress. Unlike a lerp it carries velocity,
+  // so each wheel notch starts and settles smoothly with no overshoot, and a new notch mid-glide
+  // continues from the current speed instead of restarting. Frames, panels and meter all read
+  // `shown`, so everything moves as one. Reduced motion: shown follows the scroll 1:1.
+  var OMEGA = 2 * Math.PI / 0.45;
+  var images = new Array(FRAME_COUNT);
+  var progress = 0, shown = 0, velocity = 0, painted = -1, drawn = -1, lastT = 0, maxScroll = 0, ready = false;
 
   function readScroll(){
-    var max = document.documentElement.scrollHeight - window.innerHeight;
-    progress = max > 0 ? clamp(window.pageYOffset / max, 0, 1) : 0;
+    progress = maxScroll > 0 ? clamp(window.pageYOffset / maxScroll, 0, 1) : 0;
+  }
+
+  function resize(){
+    maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    // Backing store capped at 1.5x DPR: frames are 1280px wide, so more pixels only cost fill rate.
+    var scale = Math.min(window.devicePixelRatio || 1, 1.5);
+    canvas.width = Math.round(window.innerWidth * scale);
+    canvas.height = Math.round(window.innerHeight * scale);
+    drawn = -1; // resizing clears the canvas: redraw on the next frame
+    readScroll();
+  }
+
+  // object-fit: cover, by hand (canvas has no object-fit for what it draws).
+  function drawCover(img, alpha){
+    var cw = canvas.width, ch = canvas.height, iw = img.naturalWidth, ih = img.naturalHeight;
+    var s = Math.max(cw / iw, ch / ih), w = iw * s, h = ih * s;
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
+  }
+
+  function drawFrames(){
+    var pos = shown * (FRAME_COUNT - 1);
+    if (Math.abs(pos - drawn) < 0.002) return; // nothing visible changed: skip the redraw
+    var i = Math.floor(pos), t = pos - i;
+    var a = images[i], b = images[Math.min(i + 1, FRAME_COUNT - 1)];
+    if (!a) return; // that frame failed to load
+    drawn = pos;
+    drawCover(a, 1);
+    if (b && t > 0.002) drawCover(b, t); // (1 - t) * a + t * b
+    ctx.globalAlpha = 1;
   }
 
   function paint(){
@@ -338,22 +375,23 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=…</code><button class="copy" type="button">Copy<
   }
 
   function frame(t){
-    // Time-based easing: same feel on 60Hz and 144Hz screens, no lurch after a dropped frame.
-    var dt = lastT ? Math.min((t - lastT) / (1000 / 60), 4) : 1;
+    // Real seconds since the last frame, capped so a tab returning from the background doesn't fling.
+    var dt = lastT ? Math.min((t - lastT) / 1000, 1 / 20) : 1 / 60;
     lastT = t;
-    var gap = progress - shown;
-    shown = Math.abs(gap) < 0.00005 ? progress : shown + gap * (1 - Math.pow(1 - EASE, dt));
-
-    if (ready && duration){
-      // Seek only when the eased position crosses into a NEW frame. Seeking inside the
-      // same frame just re-decodes it and keeps clip.seeking busy when a real change arrives.
-      var frames = Math.round(duration * FPS);
-      var f = Math.min(Math.floor(shown * frames), frames - 1);
-      if (f !== lastFrame && clip.readyState >= 2 && !clip.seeking){
-        lastFrame = f;
-        try { clip.currentTime = (f + 0.5) / FPS; } catch (e) {} // mid-frame: no rounding onto the neighbour
+    readScroll(); // read here, not in a scroll listener: one read per displayed frame
+    if (reduceMotion || !ready){
+      shown = progress; // also keeps the page in place behind the preloader
+      velocity = 0;
+    } else {
+      // Sub-stepped so the spring behaves the same at 60Hz and 144Hz.
+      var steps = Math.ceil(dt * 240), h = dt / steps;
+      for (var k = 0; k < steps; k++){
+        velocity += (OMEGA * OMEGA * (progress - shown) - 2 * OMEGA * velocity) * h;
+        shown += velocity * h;
       }
+      if (Math.abs(progress - shown) < 0.00002 && Math.abs(velocity) < 0.0002){ shown = progress; velocity = 0; }
     }
+    if (ready) drawFrames();
     paint();
     requestAnimationFrame(frame);
   }
@@ -369,82 +407,28 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=…</code><button class="copy" type="button">Copy<
     started = true;
     ready = true;
     boot.classList.add("done");
-    readScroll();
-    shown = progress; // reloaded mid-page: start where the page is, don't glide from the top
   }
 
-  var attached = false;
-  function attach(src){
-    if (attached) return;
-    attached = true;
-    clip.addEventListener("loadedmetadata", function(){
-      duration = clip.duration || 0;
-      clip.pause();
-      readScroll();
-      shown = progress;
-      lastFrame = -1; // frame() seeks to the current scroll position on its next tick
-    });
-    clip.addEventListener("loadeddata", start);
-    clip.addEventListener("canplaythrough", start);
-    clip.addEventListener("error", start);
-    clip.src = src;
-    clip.load();
-    setTimeout(start, 12000); // a stalled decode never strands the page behind the preloader
-  }
-
-  // Fetch the whole mp4 into a blob first: seeking inside a fully buffered blob is
-  // near instant, while range requests over the network turn the scrub into a slideshow.
+  // Load every frame, six at a time, and decode() each one before the page opens, so the first
+  // scrub never waits on a decode. A missing frame is skipped instead of blocking the page.
   function preload(){
-    var ctrl = window.AbortController ? new AbortController() : null;
-    var bail = setTimeout(function(){
-      if (attached) return;
-      if (ctrl) ctrl.abort();
-      setProgress(1);
-      attach(VIDEO_URL);
-    }, 15000);
-
-    fetch(VIDEO_URL, ctrl ? { signal: ctrl.signal } : {})
-      .then(function(res){
-        if (!res.ok || !res.body) throw new Error("fetch failed");
-        var total = +res.headers.get("content-length") || 0;
-        var reader = res.body.getReader();
-        var chunks = [], got = 0;
-        return new Promise(function(resolve, reject){
-          function pump(){
-            reader.read().then(function(r){
-              if (r.done){ resolve(new Blob(chunks, { type: "video/mp4" })); return; }
-              chunks.push(r.value);
-              got += r.value.length;
-              // 5e6 ≈ byte size of tooth-scrub.mp4, used when the server sends no content-length
-              setProgress(total ? got / total : Math.min(got / 5e6, 0.95));
-              pump();
-            }, reject);
-          }
-          pump();
-        });
-      })
-      .then(function(blob){
-        clearTimeout(bail);
-        setProgress(1);
-        attach(URL.createObjectURL(blob));
-      })
-      .catch(function(){ // CORS failure, abort, offline, or missing file
-        clearTimeout(bail);
-        setProgress(1);
-        attach(VIDEO_URL);
+    var next = 0, done = 0;
+    function one(){
+      if (next >= FRAME_COUNT) return;
+      var i = next++, img = new Image();
+      img.decoding = "async";
+      img.src = frameUrl(i);
+      var decoded = img.decode ? img.decode() : new Promise(function(res, rej){ img.onload = res; img.onerror = rej; });
+      decoded.then(function(){ images[i] = img; }, function(){}).then(function(){
+        done++;
+        setProgress(done / FRAME_COUNT);
+        if (done === FRAME_COUNT) start();
+        one();
       });
+    }
+    for (var k = 0; k < 6; k++) one();
+    setTimeout(start, 12000); // a stalled load never strands the page behind the preloader
   }
-
-  // iOS won't paint a frame from a video that has never played: nudge it once on the
-  // first interaction and pause immediately.
-  function unlock(){
-    var p = clip.play();
-    if (p && p.then) p.then(function(){ clip.pause(); }).catch(function(){});
-    else clip.pause();
-  }
-  ["touchstart", "pointerdown", "wheel", "keydown"].forEach(function(ev){
-    window.addEventListener(ev, unlock, { once: true, passive: true });
-  });
 
   // Install steps: copy each command with one tap. Clipboard needs a secure context (localhost counts).
   [].forEach.call(document.querySelectorAll(".copy"), function(btn){
@@ -458,10 +442,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=…</code><button class="copy" type="button">Copy<
     });
   });
 
-  window.addEventListener("scroll", readScroll, { passive: true });
-  window.addEventListener("resize", readScroll);
+  window.addEventListener("resize", resize);
 
-  readScroll();
+  resize();
   paint();
   preload();
   requestAnimationFrame(frame);
