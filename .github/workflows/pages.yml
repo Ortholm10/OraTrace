@@ -1,0 +1,36 @@
+# Publishes only the landing page (public/landing.html + its frames) to GitHub Pages.
+# The app itself isn't hosted: the model runs in the browser from a local clone.
+name: Landing page
+
+on:
+  push:
+    branches: [main]
+    paths: ["public/landing.html", "public/landing-frames/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir _site
+          cp public/landing.html _site/index.html
+          cp -r public/landing-frames _site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

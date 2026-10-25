@@ -279,6 +279,21 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=…</code><button class="copy" type="button">Copy<
 (function(){
   "use strict";
 
+  // GitHub Pages hosts only this page (the app runs from a local clone), so on that copy the links
+  // into the app become a jump to the install steps at the end of the scroll.
+  if (/\.github\.io$/.test(location.hostname)) {
+    document.querySelectorAll('a[href^="/"]').forEach(function(a){
+      if (a.classList.contains("pill--ghost") || (a.closest(".nav") && !a.classList.contains("pill"))) { a.remove(); return; }
+      a.textContent = "Run it locally";
+      a.href = "#install-title";
+      a.addEventListener("click", function(e){
+        e.preventDefault();
+        var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? "auto" : "smooth" });
+      });
+    });
+  }
+
   // Scroll-scrubbed tooth: an image sequence drawn on a canvas, not a <video>. Video seeks are
   // asynchronous and get dropped while one is in flight, so a fast scroll lags and then jumps;
   // drawing pre-decoded frames is synchronous. Frames come from tooth-scrub.mp4 (kept as the source):
