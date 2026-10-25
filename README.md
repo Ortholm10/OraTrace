@@ -2,6 +2,8 @@
 
 Oral lesion screening and 14-day follow-up tracker.
 
+**Live landing page:** https://ortholm10.github.io/OraTrace/ (the app itself runs locally — see [Run it locally](#run-it-locally))
+
 ## Description
 
 A dentist-facing web app that runs fully offline in the browser. A dentist takes a guided photo, an on-device model classifies it into healthy / variation / OPMD / suspicious (or indicates low confidence), and the app tracks the patient for a 14-day recheck.
